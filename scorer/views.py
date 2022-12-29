@@ -758,67 +758,67 @@ def validate(request):
     print(X_all)
     pred_rel_irl=model_rel_irl.predict(model_base.encode(X_all))
     if(aid=='rasa-test' and qid=='2'):
-        #predict
-        rasa_output=wrapper.predict(X_all)
+#         #predict
+#         rasa_output=wrapper.predict(X_all)
+#         prediction=[]
+#         lab=[i for i in range(len(desc))]
+#         lab.append(-1)
+#         desc.append(["Not belong to any class"])
+#         for ri,rasa_pred in enumerate(rasa_output):
+#             pred_flag=0
+#             if(rasa_pred["intent"] in ["nlu_fallback","None",None]):
+#                 pred_flag=1
+#                 prediction.append(-1)
+#                 continue
+#             print(type(rasa_pred["intent"]))
+#             if(rasa_pred['intent_ranking'][rasa_pred['intent']]<0.7):
+#                 prediction.append(-1)
+#                 continue
+#             # intent_ranking=dict(sorted(rasa_pred['intent_ranking'].items(), key=lambda item: item[1]))
+#             # if()
+#             for i,clas in enumerate(desc):
+#                 if clas[0]==rasa_pred['intent']:
+#                     pred_flag=1
+#                     print(X_all[ri],"Match!!")
+#                     if(i==len(desc)-1):
+#                         prediction.append(-1)
+#                     else:
+#                         prediction.append(i)
+            
+#             if(pred_flag==0):
+#                 print("NOOOOOTTTTT!",rasa_pred["intent"])
+            
+        
         prediction=[]
         lab=[i for i in range(len(desc))]
         lab.append(-1)
         desc.append(["Not belong to any class"])
-        for ri,rasa_pred in enumerate(rasa_output):
+        for x in X_all:
             pred_flag=0
-            if(rasa_pred["intent"] in ["nlu_fallback","None",None]):
-                pred_flag=1
+            res=requests.post("http://127.0.0.1:5005/model/parse",json={"text":x})
+            # print(res.content)
+            res = res.content.decode('utf-8')
+            res = json.loads(res)
+            if(res["intent"]["confidence"]<0.7):
                 prediction.append(-1)
                 continue
-            print(type(rasa_pred["intent"]))
-            if(rasa_pred['intent_ranking'][rasa_pred['intent']]<0.7):
+            elif(res["intent"]["confidence"]<0.7 and (res["intent_ranking"][0]["confidence"]-res["intent_ranking"][1]["confidence"])<0.4):
                 prediction.append(-1)
                 continue
-            # intent_ranking=dict(sorted(rasa_pred['intent_ranking'].items(), key=lambda item: item[1]))
-            # if()
+            print("RESS!!",res["intent"]["name"])
             for i,clas in enumerate(desc):
-                if clas[0]==rasa_pred['intent']:
+                if clas[0]==res["intent"]["name"]:
                     pred_flag=1
-                    print(X_all[ri],"Match!!")
+                    print(x,"Match!!")
                     if(i==len(desc)-1):
                         prediction.append(-1)
                     else:
                         prediction.append(i)
-            
+            if(res["intent"]["name"]=="nlu_fallback"):
+                pred_flag=1
+                prediction.append(-1)
             if(pred_flag==0):
-                print("NOOOOOTTTTT!",rasa_pred["intent"])
-            
-        
-        # prediction=[]
-        # lab=[i for i in range(len(desc))]
-        # lab.append(-1)
-        # desc.append(["Not belong to any class"])
-        # for x in X_all:
-        #     pred_flag=0
-        #     res=requests.post("http://127.0.0.1:5005/model/parse",json={"text":x})
-        #     # print(res.content)
-        #     res = res.content.decode('utf-8')
-        #     res = json.loads(res)
-        #     if(res["intent"]["confidence"]<0.7):
-        #         prediction.append(-1)
-        #         continue
-        #     elif(res["intent"]["confidence"]<0.7 and (res["intent_ranking"][0]["confidence"]-res["intent_ranking"][1]["confidence"])<0.4):
-        #         prediction.append(-1)
-        #         continue
-        #     print("RESS!!",res["intent"]["name"])
-        #     for i,clas in enumerate(desc):
-        #         if clas[0]==res["intent"]["name"]:
-        #             pred_flag=1
-        #             print(x,"Match!!")
-        #             if(i==len(desc)-1):
-        #                 prediction.append(-1)
-        #             else:
-        #                 prediction.append(i)
-        #     if(res["intent"]["name"]=="nlu_fallback"):
-        #         pred_flag=1
-        #         prediction.append(-1)
-        #     if(pred_flag==0):
-        #         print("NOOOOOTTTTT!",res["intent"]["name"])
+                print("NOOOOOTTTTT!",res["intent"]["name"])
     
     else:
         lab=[i for i in range(len(desc))]
