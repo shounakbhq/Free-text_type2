@@ -1,0 +1,49 @@
+model:
+  model: scorer/testing
+  # model: bert-base-uncased
+  tokenizer: scorer/testing
+  # dataset_folder: custom_data
+  exclude_file: null
+  entities:
+  - concern
+  - dep
+  - normal
+  - sol
+  - KPI
+  - cost
+  - dec
+  - tech
+  - any
+  - time
+  - sal
+  - plt
+  - mot
+  - ach
+  intents:
+  - Reason for high attrition rate
+  - Given the sales team are the most extroverted people, sales team is the only department that is facing high attrition rate.
+  - It is a long term issue since most of the company is in favour of remote working.
+  - Sales reps have lost healthy competition lowering their motivation to work. Hence the company is looking for solution to turn around this issue
+  - The immediate focus of HR team is to improve retention rate, and the sales team is focusing to maintain meeting its sales target.
+  - It takes around 20,000 USD to replace each sales rep
+  - James is looking for a solution to improve both sales and employee motivation, hence reducing attrition by increasing engagement.
+  - Tech integration would cause delays and hence is not preferable
+  - What else would you like to tell me?
+  - No change in salary structure
+  - No gamification platfom used yet
+  device: cuda
+training:
+  train_range: 0.95
+  num_train_epochs: 1000
+  per_device_train_batch_size: 4
+  per_device_eval_batch_size: 4
+  warmup_steps: 500
+  weight_decay: 0.01
+  logging_dir: logs/
+  early_stopping_patience: 10
+  early_stopping_threshold: 0.0001
+  output_dir: results/
+util:
+  intent_threshold: 0.0
+  entities_threshold: 0.0
+  ambiguous_threshold: 0.1
