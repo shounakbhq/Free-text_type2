@@ -927,6 +927,7 @@ def validate(request):
     to_ret={}
     to_ret['y_test']=y_test
     to_ret['prediction']=prediction
+    print("GPT_RES",gpt_res)
     print("Desc",len(desc))
     print("FU",[i for i in range(len(desc))].append(-1))
     # lab=[i for i in range(len(desc))]
@@ -935,9 +936,10 @@ def validate(request):
     # to_ret['labels']=[i for i in range(len(desc))].append(-1)
     to_ret['labels']=lab
     print("labels",to_ret["labels"])
-    for _,pr in enumerate(pred_rel_irl):
-        if(pr==0):
-            to_ret['prediction'][_]=-1
+    if(aid=='rasa-test' and qid=='2'):
+        for _,pr in enumerate(pred_rel_irl):
+            if(pr==0):
+                to_ret['prediction'][_]=-1
     return JsonResponse(to_ret)
     
     
