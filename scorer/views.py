@@ -42,7 +42,7 @@ from scorer.src.models.wrapper import DIETClassifierWrapper
 config_file = "scorer/config.yml"
 wrapper = DIETClassifierWrapper(config=config_file)
 openai.api_key = os.getenv("OPENAI_API_KEY")
-
+cos = nn.CosineSimilarity(dim=0)
 metric = load_metric("accuracy")
 metric1 = load_metric("precision")
 metric2 = load_metric("recall")
@@ -52,6 +52,8 @@ with open('scorer/models_entailment/rasa-test/svm_rel_irl.sav', 'rb') as pickle_
         model_rel_irl = pickle.load(pickle_file)
 model_base=SentenceTransformer('paraphrase-mpnet-base-v2')
 
+with open('scorer/emb.pickle','rb') as file:
+    emb=pickle.load(file)
 
 class PartModel(nn.Module):
   def __init__(self,num_labels): 
@@ -201,6 +203,32 @@ def kt_model(sents,desc,model_part):
         prediction.append([-1,ma])
     return prediction
 
+def return_rel(emb_matrix):
+  for cls in emb_matrix:
+    if(max(cls)>0.6):
+      return True
+  return False
+
+def predict_max(class_embeddings,sentence,tempo=None):
+    '''
+    Helper function for zero-shot
+    '''
+    emb_val=[]
+    for embedding in class_embeddings:
+        temp=[]
+        for emb in embedding:
+          temp.append(float(cos(torch.tensor(sentence),torch.from_numpy(np.array(emb)))))
+        emb_val.append(temp)
+
+    return emb_val
+
+def similarity_rel_irl(emb,sentences):
+    to_ret=[]
+    for sentence in sentences:
+        emb_matrix=predict_max(emb,sentence,None)
+        to_ret.append(return_rel(emb_matrix))
+    return to_ret
+
 @csrf_exempt
 def score(request):
     reqs = request.body.decode('utf-8')
@@ -217,6 +245,9 @@ def score(request):
         pass
             
     else:
+        sent_ret=model_base.encode(answers)
+        pred_rel_irl=model_rel_irl.predict(sent_ret)
+        # pred_rel_irl = similarity_rel_irl(emb,sent_ret)
         gpt_res=[]
         for answer in answers:
           # response = openai.Completion.create(
@@ -265,9 +296,11 @@ def score(request):
                 res = res.content.decode('utf-8')
                 res = json.loads(res)
                 if(res["intent"]["confidence"]<0.7):
+                    print("low conf")
                     prediction.append(-1)
                     continue
                 elif(res["intent"]["confidence"]<0.7 and (res["intent_ranking"][0]["confidence"]-res["intent_ranking"][1]["confidence"])<0.4):
+                    print("confused")
                     prediction.append(-1)
                     continue
                 print("RESS!!",res["intent"]["name"])
@@ -276,11 +309,13 @@ def score(request):
                         pred_flag=1
                         print(x,"Match!!")
                         if(i==len(description)-1):
+                            print("predicted wrong")
                             prediction.append(-1)
                         else:
                             prediction.append(i)
                 if(res["intent"]["name"]=="nlu_fallback"):
                     pred_flag=1
+                    print("fallback")
                     prediction.append(-1)
                 if(pred_flag==0):
                     print("NOOOOOTTTTT!",res["intent"]["name"])
@@ -306,7 +341,12 @@ def score(request):
             result['classes']=[a[0] for a in ret]
         for i,x in enumerate(result['classes']):
             if(gpt_res[i]==1):
+                print("IRL!!!")
                 result['classes'][i]=-1
+        for _,pr in enumerate(pred_rel_irl):
+            if(pr==0 or pr == False):
+                print("IRL!!")
+                result['classes'][_]=-1
     return JsonResponse(result)
 
 @csrf_exempt
@@ -800,9 +840,11 @@ def validate(request):
             res = res.content.decode('utf-8')
             res = json.loads(res)
             if(res["intent"]["confidence"]<0.7):
+                print("Low Conf")
                 prediction.append(-1)
                 continue
             elif(res["intent"]["confidence"]<0.7 and (res["intent_ranking"][0]["confidence"]-res["intent_ranking"][1]["confidence"])<0.4):
+                print("Confused")
                 prediction.append(-1)
                 continue
             print("RESS!!",res["intent"]["name"])
@@ -811,10 +853,12 @@ def validate(request):
                     pred_flag=1
                     print(x,"Match!!")
                     if(i==len(desc)-1):
+                        print("Negative predicted")      
                         prediction.append(-1)
                     else:
                         prediction.append(i)
             if(res["intent"]["name"]=="nlu_fallback"):
+                print("fallback")
                 pred_flag=1
                 prediction.append(-1)
             if(pred_flag==0):
@@ -939,6 +983,7 @@ def validate(request):
     if(aid=='rasa-test' and qid=='2'):
         for _,pr in enumerate(pred_rel_irl):
             if(pr==0):
+                print("IRL!!")
                 to_ret['prediction'][_]=-1
     return JsonResponse(to_ret)
     
