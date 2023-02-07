@@ -246,8 +246,8 @@ def score(request):
             
     else:
         sent_ret=model_base.encode(answers)
-        pred_rel_irl=model_rel_irl.predict(sent_ret)
-        # pred_rel_irl = similarity_rel_irl(emb,sent_ret)
+        # pred_rel_irl=model_rel_irl.predict(sent_ret)
+        pred_rel_irl = similarity_rel_irl(emb,sent_ret)
         gpt_res=[]
         for answer in answers:
           # response = openai.Completion.create(
@@ -303,7 +303,7 @@ def score(request):
                     print("confused")
                     prediction.append(-1)
                     continue
-                print("RESS!!",res["intent"]["name"])
+                print("RESS!!",res["intent"]["name"],res["intent"]["confidence"])
                 for i,clas in enumerate(description):
                     if clas[0]==res["intent"]["name"]:
                         pred_flag=1
@@ -346,8 +346,10 @@ def score(request):
         for _,pr in enumerate(pred_rel_irl):
             if(pr==0 or pr == False):
                 print("IRL!!")
+                print("_",_)
                 result['classes'][_]=-1
-    return JsonResponse(result)
+        print("RESULT",result)
+        return JsonResponse(result)
 
 @csrf_exempt
 def train(request):
